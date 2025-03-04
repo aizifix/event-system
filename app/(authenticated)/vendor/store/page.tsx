@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { CheckIcon } from "lucide-react"
-import axios from "axios"
-import { StoreCard } from "../../../components/card/store-card"
+import { useState, useEffect, useCallback } from "react";
+import { CheckIcon } from "lucide-react";
+import axios from "axios";
+import { StoreCard } from "../../../components/card/store-card";
 
 const steps = [
   { id: 1, name: "Store Details" },
@@ -12,17 +12,17 @@ const steps = [
   { id: 4, name: "Location" },
   { id: 5, name: "Document Upload" },
   { id: 6, name: "Review" },
-]
+];
 
 interface StoreDetailsProps {
-  vendorName: string
-  setVendorName: (value: string) => void
-  storeName: string
-  setStoreName: (value: string) => void
-  storeDetails: string
-  setStoreDetails: (value: string) => void
-  storeMedia: File | null
-  setStoreMedia: (file: File | null) => void
+  vendorName: string;
+  setVendorName: (value: string) => void;
+  storeName: string;
+  setStoreName: (value: string) => void;
+  storeDetails: string;
+  setStoreDetails: (value: string) => void;
+  storeMedia: File | null;
+  setStoreMedia: (file: File | null) => void;
 }
 
 function StoreDetails({
@@ -38,7 +38,10 @@ function StoreDetails({
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="vendorName" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="vendorName"
+          className="block text-sm font-medium text-gray-700"
+        >
           Vendor Name
         </label>
         <input
@@ -50,7 +53,10 @@ function StoreDetails({
         />
       </div>
       <div>
-        <label htmlFor="storeName" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="storeName"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Name
         </label>
         <input
@@ -62,7 +68,10 @@ function StoreDetails({
         />
       </div>
       <div>
-        <label htmlFor="storeDetails" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="storeDetails"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Details
         </label>
         <textarea
@@ -74,7 +83,10 @@ function StoreDetails({
         />
       </div>
       <div>
-        <label htmlFor="storeMedia" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="storeMedia"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Media
         </label>
         <input
@@ -85,21 +97,29 @@ function StoreDetails({
         />
       </div>
     </div>
-  )
+  );
 }
 
 interface ContactInformationProps {
-  contactNumber: string
-  setContactNumber: (value: string) => void
-  email: string
-  setEmail: (value: string) => void
+  contactNumber: string;
+  setContactNumber: (value: string) => void;
+  email: string;
+  setEmail: (value: string) => void;
 }
 
-function ContactInformation({ contactNumber, setContactNumber, email, setEmail }: ContactInformationProps) {
+function ContactInformation({
+  contactNumber,
+  setContactNumber,
+  email,
+  setEmail,
+}: ContactInformationProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="contactNumber"
+          className="block text-sm font-medium text-gray-700"
+        >
           Contact Number
         </label>
         <input
@@ -111,7 +131,10 @@ function ContactInformation({ contactNumber, setContactNumber, email, setEmail }
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700"
+        >
           Email
         </label>
         <input
@@ -123,17 +146,17 @@ function ContactInformation({ contactNumber, setContactNumber, email, setEmail }
         />
       </div>
     </div>
-  )
+  );
 }
 
 interface StoreTypeDescriptionProps {
-  storeType: string
-  setStoreType: (value: string) => void
-  storeCategoryId: number | null
-  storeDescription: string
-  setStoreDescription: (value: string) => void
-  setStoreCategoryId: (value: number | null) => void
-  storeCategories: { id: number; type: string }[]
+  storeType: string;
+  setStoreType: (value: string) => void;
+  storeCategoryId: number | null;
+  storeDescription: string;
+  setStoreDescription: (value: string) => void;
+  setStoreCategoryId: (value: number | null) => void;
+  storeCategories: { id: number; type: string }[];
 }
 
 function StoreTypeDescription({
@@ -148,13 +171,20 @@ function StoreTypeDescription({
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="storeType" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="storeType"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Type
         </label>
         <select
           id="storeType"
           value={storeCategoryId ?? ""}
-          onChange={(e) => setStoreCategoryId(e.target.value ? Number.parseInt(e.target.value) : null)}
+          onChange={(e) =>
+            setStoreCategoryId(
+              e.target.value ? Number.parseInt(e.target.value) : null
+            )
+          }
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
         >
           <option value="">Select a store type</option>
@@ -166,7 +196,10 @@ function StoreTypeDescription({
         </select>
       </div>
       <div>
-        <label htmlFor="storeDescription" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="storeDescription"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Description
         </label>
         <textarea
@@ -178,19 +211,22 @@ function StoreTypeDescription({
         />
       </div>
     </div>
-  )
+  );
 }
 
 interface LocationProps {
-  location: string
-  setLocation: (value: string) => void
+  location: string;
+  setLocation: (value: string) => void;
 }
 
 function Location({ location, setLocation }: LocationProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="location"
+          className="block text-sm font-medium text-gray-700"
+        >
           Store Location
         </label>
         <textarea
@@ -202,20 +238,20 @@ function Location({ location, setLocation }: LocationProps) {
         />
       </div>
     </div>
-  )
+  );
 }
 
 interface DocumentUploadProps {
-  coverPhoto: File | null
-  setCoverPhoto: (file: File | null) => void
-  profilePicture: File | null
-  setProfilePicture: (file: File | null) => void
-  businessPermit: File | null
-  setBusinessPermit: (file: File | null) => void
-  proofBilling: File | null
-  setProofBilling: (file: File | null) => void
-  govId: File | null
-  setGovId: (value: File | null) => void
+  coverPhoto: File | null;
+  setCoverPhoto: (file: File | null) => void;
+  profilePicture: File | null;
+  setProfilePicture: (file: File | null) => void;
+  businessPermit: File | null;
+  setBusinessPermit: (file: File | null) => void;
+  proofBilling: File | null;
+  setProofBilling: (file: File | null) => void;
+  govId: File | null;
+  setGovId: (value: File | null) => void;
 }
 
 function DocumentUpload({
@@ -233,7 +269,10 @@ function DocumentUpload({
   return (
     <div className="space-y-4">
       <div>
-        <label htmlFor="coverPhoto" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="coverPhoto"
+          className="block text-sm font-medium text-gray-700"
+        >
           Cover Photo
         </label>
         <input
@@ -244,7 +283,10 @@ function DocumentUpload({
         />
       </div>
       <div>
-        <label htmlFor="profilePicture" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="profilePicture"
+          className="block text-sm font-medium text-gray-700"
+        >
           Profile Picture
         </label>
         <input
@@ -255,7 +297,10 @@ function DocumentUpload({
         />
       </div>
       <div>
-        <label htmlFor="businessPermit" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="businessPermit"
+          className="block text-sm font-medium text-gray-700"
+        >
           Business Permit
         </label>
         <input
@@ -266,7 +311,10 @@ function DocumentUpload({
         />
       </div>
       <div>
-        <label htmlFor="proofBilling" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="proofBilling"
+          className="block text-sm font-medium text-gray-700"
+        >
           Proof of Billing
         </label>
         <input
@@ -277,7 +325,10 @@ function DocumentUpload({
         />
       </div>
       <div>
-        <label htmlFor="govId" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="govId"
+          className="block text-sm font-medium text-gray-700"
+        >
           Government ID
         </label>
         <input
@@ -288,162 +339,190 @@ function DocumentUpload({
         />
       </div>
     </div>
-  )
+  );
 }
 
 interface Store {
-  id: number
-  vendorName: string
-  storeName: string
-  storeType: string
-  storeCategory: string
-  coverPhoto: string | null
-  profilePicture: string | null
+  id: number;
+  vendorName: string;
+  storeName: string;
+  storeType: string;
+  storeCategory: string;
+  coverPhoto: string | null;
+  profilePicture: string | null;
 }
 
 export default function VendorStoreCreation() {
-  const [storeCategories, setStoreCategories] = useState<{ id: number; type: string }[]>([])
-  const [storeCategoryId, setStoreCategoryId] = useState<number | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [vendorName, setVendorName] = useState("")
-  const [storeName, setStoreName] = useState("")
-  const [storeDetails, setStoreDetails] = useState("")
-  const [storeMedia, setStoreMedia] = useState<File | null>(null)
-  const [contactNumber, setContactNumber] = useState("")
-  const [email, setEmail] = useState("")
-  const [storeType, setStoreType] = useState("")
-  const [storeDescription, setStoreDescription] = useState("")
-  const [location, setLocation] = useState("")
-  const [coverPhoto, setCoverPhoto] = useState<File | null>(null)
-  const [profilePicture, setProfilePicture] = useState<File | null>(null)
-  const [businessPermit, setBusinessPermit] = useState<File | null>(null)
-  const [proofBilling, setProofBilling] = useState<File | null>(null)
-  const [govId, setGovId] = useState<File | null>(null)
-  const [stores, setStores] = useState<Store[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [storeCategories, setStoreCategories] = useState<
+    { id: number; type: string }[]
+  >([]);
+  const [storeCategoryId, setStoreCategoryId] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [vendorName, setVendorName] = useState("");
+  const [storeName, setStoreName] = useState("");
+  const [storeDetails, setStoreDetails] = useState("");
+  const [storeMedia, setStoreMedia] = useState<File | null>(null);
+  const [contactNumber, setContactNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [storeType, setStoreType] = useState("");
+  const [storeDescription, setStoreDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [coverPhoto, setCoverPhoto] = useState<File | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [businessPermit, setBusinessPermit] = useState<File | null>(null);
+  const [proofBilling, setProofBilling] = useState<File | null>(null);
+  const [govId, setGovId] = useState<File | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const openModal = () => setIsModalOpen(true)
-  const closeModal = () => setIsModalOpen(false)
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   const fetchStores = useCallback(async () => {
     try {
-      setLoading(true)
-      const userId = localStorage.getItem("user_id")
+      setLoading(true);
+      const storedUser = localStorage.getItem("user");
+
+      if (!storedUser) {
+        setError("User ID not found. Please log in.");
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const userId = user.user_id;
 
       if (!userId) {
-        setError("User ID not found. Please log in.")
-        return
+        setError("User ID not found. Please log in.");
+        return;
       }
 
-      const response = await axios.get("http://localhost/events-api/vendor.php", {
-        params: { operation: "getStores", user_id: userId },
-      })
+      console.log("Fetching stores with user ID:", userId);
+      const response = await axios.get(
+        "http://localhost/events-api/vendor.php",
+        {
+          params: { operation: "getStores", user_id: userId },
+        }
+      );
 
       if (response.data.status === "success") {
-        console.log("Fetched Stores:", response.data.stores)
-        setStores(response.data.stores)
+        console.log("Fetched Stores:", response.data.stores);
+        setStores(response.data.stores);
       } else {
-        setError(response.data.message)
+        setError(response.data.message);
       }
     } catch (error) {
-      setError("Failed to fetch stores.")
+      console.error("Error fetching stores:", error);
+      setError("Failed to fetch stores.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const nextStep = () => {
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
+      setCurrentStep(currentStep + 1);
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   useEffect(() => {
     const fetchStoreCategories = async () => {
       try {
-        const response = await axios.get("http://localhost/events-api/vendor.php", {
-          params: { operation: "getStoreCategories" },
-        })
+        const response = await axios.get(
+          "http://localhost/events-api/vendor.php",
+          {
+            params: { operation: "getStoreCategories" },
+          }
+        );
 
         if (response.data.status === "success") {
-          setStoreCategories(response.data.categories)
+          setStoreCategories(response.data.categories);
         }
       } catch (error) {
         // console.error("Error fetching store categories:", error)
       }
-    }
+    };
 
-    fetchStoreCategories()
-  }, [])
+    fetchStoreCategories();
+  }, []);
 
   useEffect(() => {
-    fetchStores()
-  }, [fetchStores])
+    fetchStores();
+  }, [fetchStores]);
 
   const handleSubmit = async () => {
     try {
-      const formData = new FormData()
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      const userId = user?.user_id
+      const formData = new FormData();
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?.user_id;
 
       if (!userId) {
-        alert("User is not logged in. Please log in first.")
-        return
+        alert("User is not logged in. Please log in first.");
+        return;
       }
 
       if (!storeCategoryId) {
-        alert("Please select a valid store category.")
-        return
+        alert("Please select a valid store category.");
+        return;
       }
 
-      formData.append("operation", "createStore")
-      formData.append("user_id", userId.toString())
-      formData.append("storeName", storeName)
-      formData.append("storeDetails", storeDetails)
-      formData.append("contactNumber", contactNumber)
-      formData.append("email", email)
-      formData.append("storeType", storeType)
-      formData.append("storeDescription", storeDescription)
-      formData.append("location", location)
-      formData.append("store_category_id", storeCategoryId.toString())
+      formData.append("operation", "createStore");
+      formData.append("user_id", userId.toString());
+      formData.append("storeName", storeName);
+      formData.append("storeDetails", storeDetails);
+      formData.append("contactNumber", contactNumber);
+      formData.append("email", email);
+      formData.append("storeType", storeType);
+      formData.append("storeDescription", storeDescription);
+      formData.append("location", location);
+      formData.append("store_category_id", storeCategoryId.toString());
 
-      if (coverPhoto) formData.append("coverPhoto", coverPhoto)
-      if (profilePicture) formData.append("profilePicture", profilePicture)
+      if (coverPhoto) formData.append("coverPhoto", coverPhoto);
+      if (profilePicture) formData.append("profilePicture", profilePicture);
 
-      console.log("Submitting Form Data:", Object.fromEntries(formData.entries()))
+      console.log(
+        "Submitting Form Data:",
+        Object.fromEntries(formData.entries())
+      );
 
-      const response = await axios.post("http://localhost/events-api/vendor.php", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      const response = await axios.post(
+        "http://localhost/events-api/vendor.php",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
-      console.log("Response:", response.data)
+      console.log("Response:", response.data);
 
       if (response.data.status === "success") {
-        alert("Vendor store created successfully!")
-        closeModal()
-        fetchStores()
+        alert("Vendor store created successfully!");
+        closeModal();
+        fetchStores();
       } else {
-        alert("Error: " + response.data.message)
+        alert("Error: " + response.data.message);
       }
     } catch (error) {
-    //   console.error("Error submitting form:", error)
-      alert("An error occurred while submitting the form.")
+      //   console.error("Error submitting form:", error)
+      alert("An error occurred while submitting the form.");
     }
-  }
+  };
 
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">My Stores</h1>
-        <button onClick={openModal} className="rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]">
+        <button
+          onClick={openModal}
+          className="rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]"
+        >
           Create Store +
         </button>
       </div>
@@ -457,8 +536,13 @@ export default function VendorStoreCreation() {
       ) : stores.length === 0 ? (
         <div className="rounded-lg bg-gray-50 p-8 text-center">
           <h3 className="text-lg font-medium text-gray-900">No stores yet</h3>
-          <p className="mt-1 text-gray-500">Get started by creating a new store.</p>
-          <button onClick={openModal} className="mt-4 rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]">
+          <p className="mt-1 text-gray-500">
+            Get started by creating a new store.
+          </p>
+          <button
+            onClick={openModal}
+            className="mt-4 rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]"
+          >
             Create Store
           </button>
         </div>
@@ -484,7 +568,10 @@ export default function VendorStoreCreation() {
           <div className="bg-white rounded-lg p-8 w-full max-w-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold">Create Your Store</h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+              <button
+                onClick={closeModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
                 &times;
               </button>
             </div>
@@ -557,7 +644,9 @@ export default function VendorStoreCreation() {
                   setStoreCategoryId={setStoreCategoryId}
                 />
               )}
-              {currentStep === 4 && <Location location={location} setLocation={setLocation} />}
+              {currentStep === 4 && (
+                <Location location={location} setLocation={setLocation} />
+              )}
               {currentStep === 5 && (
                 <DocumentUpload
                   coverPhoto={coverPhoto}
@@ -574,7 +663,9 @@ export default function VendorStoreCreation() {
               )}
               {currentStep === 6 && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Review Your Store Details</h3>
+                  <h3 className="text-lg font-semibold">
+                    Review Your Store Details
+                  </h3>
                   <p>
                     <strong>Vendor Name:</strong> {vendorName}
                   </p>
@@ -600,11 +691,25 @@ export default function VendorStoreCreation() {
                     <strong>Documents Uploaded:</strong>
                   </p>
                   <ul className="list-disc list-inside">
-                    <li>Cover Photo: {coverPhoto ? coverPhoto.name : "Not uploaded"}</li>
-                    <li>Profile Picture: {profilePicture ? profilePicture.name : "Not uploaded"}</li>
-                    <li>Business Permit: {businessPermit ? businessPermit.name : "Not uploaded"}</li>
-                    <li>Proof of Billing: {proofBilling ? proofBilling.name : "Not uploaded"}</li>
-                    <li>Government ID: {govId ? govId.name : "Not uploaded"}</li>
+                    <li>
+                      Cover Photo:{" "}
+                      {coverPhoto ? coverPhoto.name : "Not uploaded"}
+                    </li>
+                    <li>
+                      Profile Picture:{" "}
+                      {profilePicture ? profilePicture.name : "Not uploaded"}
+                    </li>
+                    <li>
+                      Business Permit:{" "}
+                      {businessPermit ? businessPermit.name : "Not uploaded"}
+                    </li>
+                    <li>
+                      Proof of Billing:{" "}
+                      {proofBilling ? proofBilling.name : "Not uploaded"}
+                    </li>
+                    <li>
+                      Government ID: {govId ? govId.name : "Not uploaded"}
+                    </li>
                   </ul>
                 </div>
               )}
@@ -620,11 +725,17 @@ export default function VendorStoreCreation() {
                 </button>
               )}
               {currentStep < steps.length ? (
-                <button onClick={nextStep} className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]">
+                <button
+                  onClick={nextStep}
+                  className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]"
+                >
                   Next
                 </button>
               ) : (
-                <button onClick={handleSubmit} className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]">
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]"
+                >
                   Submit
                 </button>
               )}
@@ -633,5 +744,5 @@ export default function VendorStoreCreation() {
         </div>
       )}
     </div>
-  )
+  );
 }

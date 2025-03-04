@@ -1,14 +1,22 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
-import axios from "axios"
-import Logo from "../../../public/logo.png"
-import DefaultPfp from "../../../public/default_pfp.png"
-import { LayoutDashboard, Calendar, Settings, LogOut, Bell, Store, LandPlot } from "lucide-react"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import axios from "axios";
+import Logo from "../../../public/logo.png";
+import DefaultPfp from "../../../public/default_pfp.png";
+import {
+  LayoutDashboard,
+  Calendar,
+  Settings,
+  LogOut,
+  Bell,
+  Store,
+  LandPlot,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,72 +24,118 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "../../components/sidebar/VendorSidebar"
+} from "../../components/sidebar/VendorSidebar";
+import { secureStorage } from "@/app/utils/encryption";
 
 interface User {
-  user_id: number
-  user_firstName: string
-  user_lastName: string
-  user_role: string
-  user_email: string
-  user_pfp: string | null
+  user_id: number;
+  user_firstName: string;
+  user_lastName: string;
+  user_role: string;
+  user_email: string;
+  user_pfp: string | null;
 }
 
-export default function VendorLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost/events-api";
+
+export default function VendorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check if user exists in localStorage
-        const storedUser = localStorage.getItem("user")
-
-        if (!storedUser) {
-          // Instead of logging an error, just redirect silently
-          router.push("/auth/login")
-          return
+        // Clear any existing corrupted data
+        const existingData = secureStorage.getItem("user");
+        if (!existingData) {
+          console.log("No valid user data found, redirecting to login");
+          router.push("/auth/login");
+          return;
         }
 
-        const parsedUser = JSON.parse(storedUser)
-        const userId = parsedUser.user_id
-
-        // Only proceed with API call if we have a valid user ID
-        if (!userId) {
-          router.push("/auth/login")
-          return
+        // Verify user role and data integrity
+        if (
+          !existingData.user_id ||
+          !existingData.user_role ||
+          existingData.user_role.toLowerCase() !== "vendor"
+        ) {
+          console.log("Invalid or incomplete user data");
+          secureStorage.removeItem("user");
+          router.push("/auth/login");
+          return;
         }
 
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/vendor.php?operation=getUserInfo&user_id=${userId}`,
-        )
+        // Set user state with validated data
+        setUser(existingData);
 
-        if (response.data.status === "success") {
-          setUser(response.data.user)
-        } else {
-          // Clear invalid user data and redirect
-          localStorage.removeItem("user")
-          router.push("/auth/login")
+        // Fetch store data
+        try {
+          const storeResponse = await axios.get(`${API_URL}/vendor.php`, {
+            params: {
+              operation: "getStores",
+              user_id: existingData.user_id,
+            },
+          });
+          if (!storeResponse.data) {
+            console.log("No store data received");
+          }
+        } catch (error) {
+          console.error("Error fetching stores:", error);
         }
+
+        // Fetch venue data
+        try {
+          const venueResponse = await axios.get(`${API_URL}/vendor.php`, {
+            params: {
+              operation: "getVenues",
+              user_id: existingData.user_id,
+            },
+          });
+          if (!venueResponse.data) {
+            console.log("No venue data received");
+          }
+        } catch (error) {
+          console.error("Error fetching venues:", error);
+        }
+
+        setLoading(false);
       } catch (error) {
-        // Handle any errors by redirecting to login
-        localStorage.removeItem("user")
-        router.push("/auth/login")
-      } finally {
-        setLoading(false)
+        console.error("Critical error in fetchUserData:", error);
+        // Clean up and redirect
+        secureStorage.removeItem("user");
+        router.push("/auth/login");
       }
-    }
+    };
 
-    fetchUserData()
-  }, [router])
+    fetchUserData();
+  }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user")
-    localStorage.removeItem("user_id") // Also remove user_id if you're storing it
-    router.push("/auth/login")
-  }
+    try {
+      // Clear all secure storage
+      secureStorage.clear();
+
+      // Clear cookies
+      document.cookie =
+        "pending_otp_user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie =
+        "pending_otp_email=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
+      // Force reload and redirect
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Force redirect even if there's an error
+      window.location.href = "/auth/login";
+    }
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/vendor/dashboard" },
@@ -89,18 +143,24 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     { icon: LandPlot, label: "My Venues", href: "/vendor/venues" },
     { icon: Calendar, label: "Events", href: "/vendor/events" },
     { icon: Settings, label: "Settings", href: "/vendor/settings/userinfo" },
-  ]
+  ];
 
   // Show loading state or redirect if not authenticated
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
-    return null // This will be brief as the redirect should happen
+    return null; // This will be brief as the redirect should happen
   }
 
-  const profilePicture = user.user_pfp ? `${process.env.NEXT_PUBLIC_API_URL}/${user.user_pfp}` : DefaultPfp
+  const profilePicture = user.user_pfp
+    ? `${process.env.NEXT_PUBLIC_API_URL}/${user.user_pfp}`
+    : DefaultPfp;
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -111,14 +171,16 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         <SidebarContent className="flex flex-col h-[calc(100%-5rem)]">
           <SidebarMenu className="flex-1 mt-[1.5rem] gap-1">
             {menuItems.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href;
               return (
                 <SidebarMenuItem key={item.label}>
                   <SidebarMenuButton asChild>
                     <Link
                       href={item.href}
                       className={`flex w-full items-center gap-3 px-3 py-2 rounded-md transition ${
-                        isActive ? "bg-[#486968] text-white" : "text-[#797979] hover:bg-[#486968] hover:text-white"
+                        isActive
+                          ? "bg-[#486968] text-white"
+                          : "text-[#797979] hover:bg-[#486968] hover:text-white"
                       }`}
                     >
                       <item.icon className="h-5 w-5" />
@@ -126,7 +188,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )
+              );
             })}
           </SidebarMenu>
 
@@ -146,7 +208,12 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
 
       <div className="flex-1 flex flex-col ml-64">
         <header className="bg-white border-b px-6 py-4 w-full fixed top-0 left-0 right-0 z-10 flex justify-between items-center">
-          <Image src={Logo || "/placeholder.svg"} alt="Logo" width={120} height={50} />
+          <Image
+            src={Logo || "/placeholder.svg"}
+            alt="Logo"
+            width={120}
+            height={50}
+          />
 
           <div className="flex items-center gap-3">
             <div className="relative cursor-pointer">
@@ -162,7 +229,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                 width={40}
                 height={40}
                 onError={(e) => {
-                  e.currentTarget.src = DefaultPfp.src
+                  e.currentTarget.src = DefaultPfp.src;
                 }}
               />
             </div>
@@ -172,7 +239,9 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                   {user.user_firstName} {user.user_lastName}
                 </div>
                 <div>
-                  <span className="text-[#8b8b8b] font-semibold">{user.user_role}</span>
+                  <span className="text-[#8b8b8b] font-semibold">
+                    {user.user_role}
+                  </span>
                 </div>
               </div>
             </span>
@@ -182,5 +251,5 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         <main className="flex-1 overflow-auto p-6 mt-16">{children}</main>
       </div>
     </div>
-  )
+  );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import ReCAPTCHA from "react-google-recaptcha";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 import SuccessModal from "../../components/modals/SuccessModal";
 import Image from "next/image";
 import Logo from "../../../public/logo.png";
@@ -62,6 +62,15 @@ const SignUpPage: React.FC = () => {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [passwordChecks, setPasswordChecks] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+    match: false
+  });
+  const [checkingPassword, setCheckingPassword] = useState(false);
 
   const steps = [
     "Personal Info",
@@ -70,6 +79,25 @@ const SignUpPage: React.FC = () => {
     "Vendor Info",
     "Review",
   ];
+
+  // Password validation
+  useEffect(() => {
+    setCheckingPassword(true);
+    const timer = setTimeout(() => {
+      const checks = {
+        length: formData.password.length >= 8,
+        uppercase: /[A-Z]/.test(formData.password),
+        lowercase: /[a-z]/.test(formData.password),
+        number: /[0-9]/.test(formData.password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password),
+        match: formData.password === formData.confirmPassword && formData.password !== ''
+      };
+      setPasswordChecks(checks);
+      setCheckingPassword(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.password, formData.confirmPassword]);
 
   // Handle input changes
   const handleChange = (
@@ -122,8 +150,10 @@ const SignUpPage: React.FC = () => {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setMessage("Passwords do not match.");
+    // Check if all password requirements are met
+    const allPasswordChecksPassed = Object.values(passwordChecks).every(check => check);
+    if (!allPasswordChecksPassed) {
+      setMessage("Please ensure all password requirements are met.");
       setShowAlert(true);
       return;
     }
@@ -156,6 +186,22 @@ const SignUpPage: React.FC = () => {
       setCheckingUsername(false); // Hide loading state
     }
   };
+
+  // Password requirement check renderer
+  const renderPasswordCheck = (label: string, check: boolean) => (
+    <div className="flex items-center space-x-2">
+      {checkingPassword ? (
+        <div className="w-4 h-4 animate-pulse bg-gray-200 rounded-full" />
+      ) : check ? (
+        <CheckIcon className="w-4 h-4 text-green-500" />
+      ) : (
+        <XIcon className="w-4 h-4 text-red-500" />
+      )}
+      <span className={`text-sm ${check ? 'text-green-500' : 'text-red-500'}`}>
+        {label}
+      </span>
+    </div>
+  );
 
   // Move to the next step
   const nextStep = () => {
@@ -194,11 +240,15 @@ const SignUpPage: React.FC = () => {
           setShowAlert(true);
           return;
         }
-        if (formData.password !== formData.confirmPassword) {
-          setMessage("Passwords do not match.");
+
+        // Check if all password requirements are met
+        const allPasswordChecksPassed = Object.values(passwordChecks).every(check => check);
+        if (!allPasswordChecksPassed) {
+          setMessage("Please ensure all password requirements are met.");
           setShowAlert(true);
           return;
         }
+
         return checkUsername();
 
       case 3:
@@ -529,6 +579,13 @@ const SignUpPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#334746]"
                   required
                 />
+                <div className="mt-2 space-y-1">
+                  {renderPasswordCheck("At least 8 characters", passwordChecks.length)}
+                  {renderPasswordCheck("Contains uppercase letter", passwordChecks.uppercase)}
+                  {renderPasswordCheck("Contains lowercase letter", passwordChecks.lowercase)}
+                  {renderPasswordCheck("Contains number", passwordChecks.number)}
+                  {renderPasswordCheck("Contains special character", passwordChecks.special)}
+                </div>
               </div>
 
               <div>
@@ -548,6 +605,9 @@ const SignUpPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#334746]"
                   required
                 />
+                <div className="mt-2">
+                  {renderPasswordCheck("Passwords match", passwordChecks.match)}
+                </div>
               </div>
             </>
           )}

@@ -8,6 +8,7 @@ import Image from "next/image";
 import ReCAPTCHA from "react-google-recaptcha";
 import Logo from "../../../public/logo.png";
 import { SlidingAlert } from "../../components/ui/sliding-alert";
+import { redirectIfAuthenticated } from "@/app/utils/routeProtection";
 
 // Get API and reCAPTCHA keys from .env
 const API_URL =
@@ -24,6 +25,10 @@ const LoginPage = () => {
   const [message, setMessage] = useState("");
   const [showAlert, setShowAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Temporarily commented out login limitation
+  // const [loginAttempts, setLoginAttempts] = useState(0);
+  // const [isLocked, setIsLocked] = useState(false);
+  // const [lockoutEndTime, setLockoutEndTime] = useState<number | null>(null);
   const router = useRouter();
 
   // Check if user is already logged in
@@ -50,6 +55,40 @@ const LoginPage = () => {
 
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    // Redirect to dashboard if already authenticated
+    redirectIfAuthenticated();
+  }, []);
+
+  // Temporarily commented out lockout check
+  /*
+  useEffect(() => {
+    const storedAttempts = localStorage.getItem("loginAttempts");
+    const storedLockoutEnd = localStorage.getItem("lockoutEndTime");
+
+    if (storedAttempts) {
+      const attempts = parseInt(storedAttempts);
+      setLoginAttempts(attempts);
+
+      // Only check lockout if there are enough failed attempts
+      if (attempts >= 5 && storedLockoutEnd) {
+        const lockoutEnd = parseInt(storedLockoutEnd);
+        if (lockoutEnd > Date.now()) {
+          setIsLocked(true);
+          setLockoutEndTime(lockoutEnd);
+        } else {
+          // Clear expired lockout
+          localStorage.removeItem("loginAttempts");
+          localStorage.removeItem("lockoutEndTime");
+          setLoginAttempts(0);
+          setIsLocked(false);
+          setLockoutEndTime(null);
+        }
+      }
+    }
+  }, []);
+  */
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,30 +126,35 @@ const LoginPage = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (response.data.status === "success") {
-        // Clear any existing data first
-        localStorage.removeItem("user");
-        localStorage.removeItem("user_id");
+      console.log("Login response:", response.data); // Debug log
 
-        // Then set the new data
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        localStorage.setItem("user_id", response.data.user.user_id.toString());
+      if (response.data.status === "otp_sent") {
+        // Store user_id and email in cookie for OTP verification
+        document.cookie = `pending_otp_user_id=${response.data.user_id}; path=/`;
+        document.cookie = `pending_otp_email=${response.data.email}; path=/`;
 
-        // Redirect based on role (case-insensitive)
-        const userRole = response.data.user.user_role.toLowerCase();
-        if (userRole === "admin") {
-          router.push("/admin/dashboard");
-        } else if (userRole === "vendor") {
-          router.push("/vendor/dashboard");
-        } else {
-          setMessage("⚠ Unauthorized access. Please contact support.");
-          setShowAlert(true);
-        }
-      } else {
+        // Debug log for cookie setting
+        console.log("Setting cookies:", {
+          user_id: response.data.user_id,
+          email: response.data.email,
+          cookies: document.cookie,
+        });
+
+        // Show success message
+        setMessage(response.data.message || "OTP sent successfully!");
+        setShowAlert(true);
+
+        // Immediate redirect to OTP page
+        router.push("/auth/verify-otp");
+      } else if (response.data.status === "error") {
         setMessage(response.data.message || "⚠ Invalid credentials");
+        setShowAlert(true);
+      } else {
+        setMessage("⚠ Unexpected response from server");
         setShowAlert(true);
       }
     } catch (error) {
+      console.error("Login error:", error);
       setMessage("⚠ Error logging in. Please try again.");
       setShowAlert(true);
     } finally {
@@ -126,6 +170,7 @@ const LoginPage = () => {
         className="mb-6"
         width={150}
         height={150}
+        style={{ width: "auto", height: "auto" }}
         priority
       />
       <div className="w-full max-w-sm p-6 bg-white rounded-lg shadow-md">
@@ -171,7 +216,7 @@ const LoginPage = () => {
 
           <button
             type="submit"
-            className="mt-4 w-full bg-[#334746] text-white py-2 rounded-lg hover:bg-gray-800"
+            className="mt-4 w-full bg-[#334746] text-white py-2 rounded-lg hover:bg-gray-800 disabled:bg-gray-400"
             disabled={isLoading || !formData.captchaResponse}
           >
             {isLoading ? "Logging in..." : "Login"}

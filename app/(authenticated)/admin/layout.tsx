@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../../components/sidebar/AdminSidebar";
+import { secureStorage } from "@/app/utils/encryption";
 
 interface User {
   user_firstName: string;
@@ -42,27 +43,41 @@ export default function AdminLayout({
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/auth/login");
-      return;
-    }
-
     try {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.user_role !== "Admin") {
+      const userData = secureStorage.getItem("user");
+      if (!userData) {
+        console.log("No user data found in secure storage");
         router.push("/auth/login");
         return;
       }
-      setUser(parsedUser);
+
+      if (userData.user_role !== "Admin") {
+        console.log("Invalid user role:", userData.user_role);
+        router.push("/auth/login");
+        return;
+      }
+      setUser(userData);
     } catch (error) {
+      console.error("Error in admin layout:", error);
+      secureStorage.removeItem("user");
       router.push("/auth/login");
     }
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/auth/login");
+    try {
+      secureStorage.removeItem("user");
+      // Clear any other stored data
+      document.cookie =
+        "pending_otp_user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie =
+        "pending_otp_email=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Force redirect even if there's an error
+      router.push("/auth/login");
+    }
   };
 
   const menuItems = [

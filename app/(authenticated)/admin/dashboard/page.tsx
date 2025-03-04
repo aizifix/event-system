@@ -15,6 +15,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { secureStorage } from "@/app/utils/encryption";
+import { protectRoute } from "@/app/utils/routeProtection";
 
 const revenueData = [
   { day: "Mon", current: 4000, previous: 5000 },
@@ -39,8 +41,22 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (!user?.user_role || user.user_role !== "Admin") {
+    try {
+      // Protect route from unauthorized access and back navigation
+      protectRoute();
+
+      const userData = secureStorage.getItem("user");
+      if (
+        !userData ||
+        !userData.user_role ||
+        userData.user_role.toLowerCase() !== "admin"
+      ) {
+        console.log("Invalid user data in dashboard:", userData);
+        router.push("/auth/login");
+        return;
+      }
+    } catch (error) {
+      console.error("Error accessing user data:", error);
       router.push("/auth/login");
     }
   }, [router]);
