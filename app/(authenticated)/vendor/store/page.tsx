@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckIcon } from "lucide-react";
 import axios from "axios";
 import { StoreCard } from "../../../components/card/store-card";
+import { secureStorage } from "@/app/utils/encryption";
 
 const steps = [
   { id: 1, name: "Store Details" },
@@ -383,15 +384,14 @@ export default function VendorStoreCreation() {
   const fetchStores = useCallback(async () => {
     try {
       setLoading(true);
-      const storedUser = localStorage.getItem("user");
+      const userData = secureStorage.getItem("user");
 
-      if (!storedUser) {
+      if (!userData) {
         setError("User ID not found. Please log in.");
         return;
       }
 
-      const user = JSON.parse(storedUser);
-      const userId = user.user_id;
+      const userId = userData.user_id;
 
       if (!userId) {
         setError("User ID not found. Please log in.");
@@ -460,8 +460,8 @@ export default function VendorStoreCreation() {
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const userId = user?.user_id;
+      const userData = secureStorage.getItem("user");
+      const userId = userData?.user_id;
 
       if (!userId) {
         alert("User is not logged in. Please log in first.");

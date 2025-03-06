@@ -2,41 +2,120 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  Building2,
+  Store,
+  CheckCircle2,
+  Activity,
+} from "lucide-react";
 import { secureStorage } from "@/app/utils/encryption";
 import { protectRoute } from "@/app/utils/routeProtection";
+import axios from "axios";
+
+interface DashboardMetrics {
+  venuesCreated: number;
+  storesCreated: number;
+  activeVenues: number;
+  activeStores: number;
+}
 
 export default function VendorDashboard() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    venuesCreated: 0,
+    storesCreated: 0,
+    activeVenues: 0,
+    activeStores: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      // Protect route from unauthorized access and back navigation
-      protectRoute();
+    const fetchDashboardData = async () => {
+      try {
+        const userData = secureStorage.getItem("user");
+        if (!userData?.user_id) {
+          throw new Error("User ID not found");
+        }
 
-      const userData = secureStorage.getItem("user");
-      if (
-        !userData ||
-        !userData.user_role ||
-        userData.user_role.toLowerCase() !== "vendor"
-      ) {
-        console.log("Invalid user data in dashboard:", userData);
-        router.push("/auth/login");
-        return;
+        // Fetch venues
+        const venuesResponse = await axios.get(
+          `http://localhost/events-api/vendor.php?operation=getVenues&user_id=${userData.user_id}`
+        );
+
+        // Fetch stores
+        const storesResponse = await axios.get(
+          `http://localhost/events-api/vendor.php?operation=getStores&user_id=${userData.user_id}`
+        );
+
+        if (
+          venuesResponse.data.status === "success" &&
+          storesResponse.data.status === "success"
+        ) {
+          const venues = venuesResponse.data.venues || [];
+          const stores = storesResponse.data.stores || [];
+
+          setMetrics({
+            venuesCreated: venues.length,
+            storesCreated: stores.length,
+            activeVenues: venues.filter((v) => v.venue_status === "available")
+              .length,
+            activeStores: stores.filter((s) => s.store_status === "active")
+              .length,
+          });
+        }
+
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error accessing user data:", error);
-      router.push("/auth/login");
-    }
-  }, [router]);
+    };
 
-  const metrics = [
-    { title: "Venues Created", value: "16", change: "+25%", trend: "up" },
-    { title: "Quick Events", value: "357", change: "+24%", trend: "up" },
-    { title: "Performance", value: "2300", change: "+15%", trend: "up" },
-    { title: "Active Events", value: "840", change: "+30%", trend: "up" },
+    fetchDashboardData();
+  }, []);
+
+  const dashboardMetrics = [
+    {
+      title: "Venues Created",
+      value: metrics.venuesCreated.toString(),
+      change: "Total",
+      trend: "up",
+      bgColor: "bg-[#486968]",
+      icon: Building2,
+    },
+    {
+      title: "Stores Created",
+      value: metrics.storesCreated.toString(),
+      change: "Total",
+      trend: "up",
+      bgColor: "bg-gray-900",
+      icon: Store,
+    },
+    {
+      title: "Active Venues",
+      value: metrics.activeVenues.toString(),
+      change: "Available",
+      trend: "up",
+      bgColor: "bg-white",
+      textColor: "text-gray-900",
+      icon: CheckCircle2,
+    },
+    {
+      title: "Active Stores",
+      value: metrics.activeStores.toString(),
+      change: "Active",
+      trend: "up",
+      bgColor: "bg-white",
+      textColor: "text-gray-900",
+      icon: Activity,
+    },
   ];
 
   const reviews = {
@@ -193,101 +272,75 @@ export default function VendorDashboard() {
     return days;
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg">Loading dashboard data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-lg text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric, index) => (
-          <div
-            key={index}
-            className={`rounded-xl p-6 ${
-              index === 0
-                ? "bg-[#486968]"
-                : index === 1
-                  ? "bg-gray-900"
-                  : "bg-white"
-            } ${index > 1 ? "text-gray-900" : "text-white"}`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-12 w-12 rounded-full bg-white/20 p-3" />
-              <div className="flex items-center gap-1 text-sm">
-                {metric.change}
-                {metric.trend === "up" ? (
-                  <ArrowUp className="h-4 w-4" />
-                ) : (
-                  <ArrowDown className="h-4 w-4" />
-                )}
+        {dashboardMetrics.map((metric, index) => {
+          const IconComponent = metric.icon;
+          return (
+            <div
+              key={index}
+              className={`rounded-xl p-6 ${metric.bgColor} ${metric.textColor || "text-white"}`}
+            >
+              <div className="flex items-center justify-between">
+                <IconComponent className="h-8 w-8" strokeWidth={1.5} />
+                <div className="flex items-center gap-1 text-sm">
+                  {metric.change}
+                  {metric.trend === "up" ? (
+                    <ArrowUp className="h-4 w-4" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4" />
+                  )}
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-bold">{metric.value}</p>
+                <p className="text-sm opacity-80">{metric.title}</p>
               </div>
             </div>
-            <div className="mt-4">
-              <p className="text-3xl font-bold">{metric.value}</p>
-              <p className="text-sm opacity-80">{metric.title}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-xl bg-white p-6">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Reviews</h2>
-            <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white">
-              View all reviews
-            </button>
+            <h2 className="text-lg font-semibold">Feedbacks</h2>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Positive Reviews</span>
-                <span className="text-sm font-medium">{reviews.positive}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full w-[80%] rounded-full bg-[#486968]" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Neutral Reviews</span>
-                <span className="text-sm font-medium">{reviews.neutral}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full w-[17%] rounded-full bg-gray-500" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Negative Reviews</span>
-                <span className="text-sm font-medium">{reviews.negative}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full w-[3%] rounded-full bg-red-500" />
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600">
-              More than {reviews.total} vendors have created stores or venues on
-              our platform.
+          <div className="flex flex-col items-center justify-center py-8">
+            <span className="text-6xl mb-4">😊</span>
+            <p className="text-gray-500 text-center">
+              No feedbacks available yet
             </p>
           </div>
 
           <div className="mt-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Event Overview</h2>
-              <span className="text-sm text-green-500">+24% this month</span>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Activity Logs</h2>
             </div>
 
-            <div className="space-y-4">
-              {events.map((event, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className={`h-2 w-2 mt-2 rounded-full ${event.color}`} />
-                  <div>
-                    <p className="font-medium">{event.title}</p>
-                    <p className="text-sm text-gray-600">{event.time}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col items-center justify-center py-8">
+              <span className="text-6xl mb-4">📝</span>
+              <p className="text-gray-500 text-center">
+                No activity logs available yet
+              </p>
             </div>
           </div>
         </div>
@@ -327,34 +380,11 @@ export default function VendorDashboard() {
           </div>
           <div className="rounded-xl bg-white p-6">
             <h3 className="text-md font-semibold mb-4">Upcoming Events</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Wedding Reception</p>
-                  <p className="text-sm text-gray-500">Grand Ballroom</p>
-                </div>
-                <span className="text-xs bg-[#486968] text-white px-2 py-1 rounded-full">
-                  Dec 15
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Corporate Seminar</p>
-                  <p className="text-sm text-gray-500">Conference Hall</p>
-                </div>
-                <span className="text-xs bg-[#486968] text-white px-2 py-1 rounded-full">
-                  Dec 18
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Birthday Party</p>
-                  <p className="text-sm text-gray-500">Garden Pavilion</p>
-                </div>
-                <span className="text-xs bg-[#486968] text-white px-2 py-1 rounded-full">
-                  Dec 22
-                </span>
-              </div>
+            <div className="flex flex-col items-center justify-center py-8">
+              <span className="text-6xl mb-4">📅</span>
+              <p className="text-gray-500 text-center">
+                No upcoming events yet
+              </p>
             </div>
           </div>
         </div>

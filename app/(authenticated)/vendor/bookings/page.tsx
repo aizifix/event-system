@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { secureStorage } from "@/app/utils/encryption";
 import { protectRoute } from "@/app/utils/routeProtection";
 
-export default function VendorDashboard() {
+export default function VendorBookings() {
   const router = useRouter();
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function VendorDashboard() {
         !userData.user_role ||
         userData.user_role.toLowerCase() !== "vendor"
       ) {
-        console.log("Invalid user data in events:", userData);
+        console.log("Invalid user data in bookings:", userData);
         router.push("/auth/login");
         return;
       }
@@ -31,9 +31,9 @@ export default function VendorDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Vendor Dashboard</h1>
-      <p>Events page</p>
-      {/* Add more dashboard content here */}
+      <h1 className="text-2xl font-bold mb-4">Bookings</h1>
+      <p>Manage your bookings here</p>
+      {/* Add more bookings content here */}
     </div>
   );
 }

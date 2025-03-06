@@ -16,6 +16,8 @@ import {
   Bell,
   Store,
   LandPlot,
+  Table,
+  BookText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -139,6 +141,8 @@ export default function VendorLayout({
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/vendor/dashboard" },
+    { icon: Table, label: "Overview", href: "/vendor/overview" },
+    { icon: BookText, label: "Bookings", href: "/vendor/bookings" },
     { icon: Store, label: "My Store", href: "/vendor/store" },
     { icon: LandPlot, label: "My Venues", href: "/vendor/venues" },
     { icon: Calendar, label: "Events", href: "/vendor/events" },
@@ -226,8 +230,9 @@ export default function VendorLayout({
               <Image
                 src={profilePicture || "/placeholder.svg"}
                 alt="Profile"
-                width={40}
-                height={40}
+                width={500}
+                height={500}
+                className="object-fill overflow-hidden"
                 onError={(e) => {
                   e.currentTarget.src = DefaultPfp.src;
                 }}

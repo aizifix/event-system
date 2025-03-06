@@ -133,53 +133,72 @@ class Store {
             $storeType = $data['storeType'] ?? '';
             $storeDescription = $data['storeDescription'] ?? '';
             $location = $data['location'] ?? '';
-
-            // File uploads
-            $coverPhoto = $this->uploadFile($files['coverPhoto'] ?? null, 'uploads/cover_photos/');
-            $profilePicture = $this->uploadFile($files['profilePicture'] ?? null, 'uploads/profile_pictures/');
-
-            // Use default profile picture if none provided
-            if (!$profilePicture && $this->defaultPfpPath) {
-                $profilePicture = $this->defaultPfpPath;
-            }
-
             $storeCategoryId = $data['store_category_id'] ?? null;
+
+            // Price data
+            $storeMinPrice = $data['store_price_min'] ?? 0;
+            $storeMaxPrice = $data['store_price_max'] ?? 0;
+            $storePriceDescription = $data['store_price_description'] ?? '';
 
             if (!$storeCategoryId) {
                 echo json_encode(["status" => "error", "message" => "Store category ID is required"]);
                 return;
             }
 
-            $sql = "INSERT INTO tbl_store (
-                user_id, store_name, store_details, store_contact, store_email,
-                store_type, store_description, store_location, store_coverphoto, store_profile_picture, store_category_id
-            ) VALUES (
-                :userId, :storeName, :storeDetails, :contactNumber, :email,
-                :storeType, :storeDescription, :location, :coverPhoto, :profilePicture, :storeCategoryId
-            )";
+            // File uploads
+            $coverPhoto = $this->uploadFile($files['coverPhoto'] ?? null, 'uploads/cover_photos/');
+            $profilePicture = $this->uploadFile($files['profilePicture'] ?? null, 'uploads/profile_pictures/');
 
-            $stmt = $this->conn->prepare($sql);
-            $result = $stmt->execute([
-                ':userId' => $userId,
-                ':storeName' => $storeName,
-                ':storeDetails' => $storeDetails,
-                ':contactNumber' => $contactNumber,
-                ':email' => $email,
-                ':storeType' => $storeType,
-                ':storeDescription' => $storeDescription,
-                ':location' => $location,
-                ':coverPhoto' => $coverPhoto,
-                ':profilePicture' => $profilePicture,
-                ':storeCategoryId' => $storeCategoryId
-            ]);
-
-
-            if (!$result) {
-                echo json_encode(["status" => "error", "message" => "Database execution failed."]);
-                return;
+            if (!$profilePicture && $this->defaultPfpPath) {
+                $profilePicture = $this->defaultPfpPath;
             }
 
-            echo json_encode(["status" => "success", "message" => "Store created successfully!"]);
+            $this->conn->beginTransaction();
+
+            try {
+                $sql = "INSERT INTO tbl_store (
+                    user_id, store_name, store_details, store_contact, store_email,
+                    store_type, store_description, store_location, store_coverphoto, store_profile_picture, store_category_id
+                ) VALUES (
+                    :userId, :storeName, :storeDetails, :contactNumber, :email,
+                    :storeType, :storeDescription, :location, :coverPhoto, :profilePicture, :storeCategoryId
+                )";
+
+                $stmt = $this->conn->prepare($sql);
+                $stmt->execute([
+                    ':userId' => $userId,
+                    ':storeName' => $storeName,
+                    ':storeDetails' => $storeDetails,
+                    ':contactNumber' => $contactNumber,
+                    ':email' => $email,
+                    ':storeType' => $storeType,
+                    ':storeDescription' => $storeDescription,
+                    ':location' => $location,
+                    ':coverPhoto' => $coverPhoto,
+                    ':profilePicture' => $profilePicture,
+                    ':storeCategoryId' => $storeCategoryId
+                ]);
+
+                $storeId = $this->conn->lastInsertId();
+
+                // Insert store pricing
+                $sqlPrice = "INSERT INTO tbl_store_price (store_id, store_price_min, store_price_max, store_price_description)
+                            VALUES (:storeId, :storeMinPrice, :storeMaxPrice, :storePriceDescription)";
+
+                $stmtPrice = $this->conn->prepare($sqlPrice);
+                $stmtPrice->execute([
+                    ':storeId' => $storeId,
+                    ':storeMinPrice' => $storeMinPrice,
+                    ':storeMaxPrice' => $storeMaxPrice,
+                    ':storePriceDescription' => $storePriceDescription
+                ]);
+
+                $this->conn->commit();
+                echo json_encode(["status" => "success", "message" => "Store created successfully!"]);
+            } catch (Exception $e) {
+                $this->conn->rollBack();
+                throw $e;
+            }
         } catch (PDOException $e) {
             echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
         }
@@ -190,10 +209,24 @@ class Store {
             $sql = "SELECT s.store_id AS id, s.store_name AS storeName,
                            sc.store_category_type AS storeCategory,
                            s.store_coverphoto AS coverPhoto,
-                           COALESCE(s.store_profile_picture, :defaultPfp) AS profilePicture
+                           COALESCE(s.store_profile_picture, :defaultPfp) AS profilePicture,
+                           s.store_type, s.store_status, s.store_location, s.store_contact,
+                           s.store_createdAt, s.store_email, s.store_description, s.store_details,
+                           CONCAT(u.user_firstName, ' ', u.user_lastName) as vendor_name,
+                           GROUP_CONCAT(
+                               JSON_OBJECT(
+                                   'title', sp.store_price_title,
+                                   'min', sp.store_price_min,
+                                   'max', sp.store_price_max,
+                                   'description', sp.store_price_description
+                               )
+                           ) as prices
                     FROM tbl_store s
                     JOIN tbl_store_category sc ON s.store_category_id = sc.store_category_id
-                    WHERE s.user_id = :userId";
+                    JOIN tbl_users u ON s.user_id = u.user_id
+                    LEFT JOIN tbl_store_price sp ON s.store_id = sp.store_id
+                    WHERE s.user_id = :userId
+                    GROUP BY s.store_id";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
@@ -202,9 +235,6 @@ class Store {
             ]);
             $stores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Log fetched stores
-            error_log(json_encode($stores));
-
             foreach ($stores as &$store) {
                 $store['coverPhoto'] = $store['coverPhoto'] ? "uploads/cover_photos/" . basename($store['coverPhoto']) : null;
                 $store['profilePicture'] = $store['profilePicture'] ?
@@ -212,14 +242,20 @@ class Store {
                         $store['profilePicture'] :
                         "uploads/profile_pictures/" . basename($store['profilePicture'])) :
                     $this->defaultPfpPath;
+
+                if (isset($store['store_createdAt'])) {
+                    $store['store_createdAt'] = date('Y-m-d', strtotime($store['store_createdAt']));
+                }
+
+                $store['prices'] = $store['prices'] ? json_decode('[' . $store['prices'] . ']', true) : [];
             }
 
             echo json_encode(["status" => "success", "stores" => $stores]);
         } catch (PDOException $e) {
+            error_log("Database error in getStores: " . $e->getMessage());
             echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
         }
     }
-
 
     public function getStoreCategories() {
         try {
@@ -272,94 +308,209 @@ class Venue {
 
             $userId = $data['user_id'];
             $venueTitle = $data['venue_title'] ?? '';
-            $venueOwner = $data['venue_owner'] ?? '';
             $venueLocation = $data['venue_location'] ?? '';
             $venueContact = $data['venue_contact'] ?? '';
             $venueDetails = $data['venue_details'] ?? '';
             $venueStatus = $data['venue_status'] ?? 'available';
-            $venuePriceMin = $data['venue_price_min'] ?? 0;
-            $venuePriceMax = $data['venue_price_max'] ?? 0;
-            $venueCapacity = $data['venue_capacity'] ?? 0;
             $venueType = $data['venue_type'] ?? 'internal';
+
+            // Get vendor name from users table
+            $sqlUser = "SELECT CONCAT(user_firstName, ' ', user_lastName) as vendor_name FROM tbl_users WHERE user_id = :userId";
+            $stmtUser = $this->conn->prepare($sqlUser);
+            $stmtUser->execute([':userId' => $userId]);
+            $venueOwner = $stmtUser->fetch(PDO::FETCH_ASSOC)['vendor_name'] ?? '';
 
             // File uploads
             $venueProfilePicture = $this->uploadFile($files['venue_profile_picture'] ?? null, 'uploads/venue_profile_pictures/');
             $venueCoverPhoto = $this->uploadFile($files['venue_cover_photo'] ?? null, 'uploads/venue_cover_photos/');
 
-            // Use default profile picture if none provided
             if (!$venueProfilePicture && $this->defaultPfpPath) {
                 $venueProfilePicture = $this->defaultPfpPath;
             }
 
-            $sql = "INSERT INTO tbl_venue (
-                user_id, venue_title, venue_owner, venue_location, venue_contact, venue_details,
-                venue_status, venue_price_min, venue_price_max, venue_capacity,
-                venue_type, venue_profile_picture, venue_cover_photo
-            ) VALUES (
-                :userId, :venueTitle, :venueOwner, :venueLocation, :venueContact, :venueDetails,
-                :venueStatus, :venuePriceMin, :venuePriceMax, :venueCapacity,
-                :venueType, :venueProfilePicture, :venueCoverPhoto
-            )";
+            $this->conn->beginTransaction();
 
-            $stmt = $this->conn->prepare($sql);
-            $result = $stmt->execute([
-                ':userId' => $userId,
-                ':venueTitle' => $venueTitle,
-                ':venueOwner' => $venueOwner,
-                ':venueLocation' => $venueLocation,
-                ':venueContact' => $venueContact,
-                ':venueDetails' => $venueDetails,
-                ':venueStatus' => $venueStatus,
-                ':venuePriceMin' => $venuePriceMin,
-                ':venuePriceMax' => $venuePriceMax,
-                ':venueCapacity' => $venueCapacity,
-                ':venueType' => $venueType,
-                ':venueProfilePicture' => $venueProfilePicture,
-                ':venueCoverPhoto' => $venueCoverPhoto
-            ]);
+            try {
+                if (isset($data['pricing']) && is_array($data['pricing'])) {
+                    $firstTier = $data['pricing'][0]; // Use first tier for main capacity
 
-            if (!$result) {
-                echo json_encode(["status" => "error", "message" => "Database execution failed."]);
-                return;
+                    // Create the venue record first
+                    $sql = "INSERT INTO tbl_venue (
+                        user_id,
+                        venue_title,
+                        venue_owner,
+                        venue_location,
+                        venue_contact,
+                        venue_details,
+                        venue_status,
+                        venue_capacity,
+                        venue_type,
+                        venue_profile_picture,
+                        venue_cover_photo
+                    ) VALUES (
+                        :userId,
+                        :venueTitle,
+                        :venueOwner,
+                        :venueLocation,
+                        :venueContact,
+                        :venueDetails,
+                        :venueStatus,
+                        :venueCapacity,
+                        :venueType,
+                        :venueProfilePicture,
+                        :venueCoverPhoto
+                    )";
+
+                    $stmt = $this->conn->prepare($sql);
+                    $stmt->execute([
+                        ':userId' => $userId,
+                        ':venueTitle' => $venueTitle,
+                        ':venueOwner' => $venueOwner,
+                        ':venueLocation' => $venueLocation,
+                        ':venueContact' => $venueContact,
+                        ':venueDetails' => $venueDetails,
+                        ':venueStatus' => $venueStatus,
+                        ':venueCapacity' => $firstTier['capacity'] ?? 0,
+                        ':venueType' => $venueType,
+                        ':venueProfilePicture' => $venueProfilePicture,
+                        ':venueCoverPhoto' => $venueCoverPhoto
+                    ]);
+
+                    $venueId = $this->conn->lastInsertId();
+
+                    // Create all pricing tiers with reference to the venue
+                    foreach ($data['pricing'] as $tier) {
+                        $sqlPrice = "INSERT INTO tbl_venue_price (
+                            venue_id,
+                            venue_price_title,
+                            venue_price_min,
+                            venue_price_max,
+                            venue_price_description,
+                            tbl_capacity
+                        ) VALUES (
+                            :venueId,
+                            :title,
+                            :priceMin,
+                            :priceMax,
+                            :description,
+                            :capacity
+                        )";
+
+                        $stmtPrice = $this->conn->prepare($sqlPrice);
+                        $stmtPrice->execute([
+                            ':venueId' => $venueId,
+                            ':title' => $tier['name'] ?? '',
+                            ':priceMin' => $tier['price'] ?? 0,
+                            ':priceMax' => $tier['price'] ?? 0,
+                            ':description' => $tier['description'] ?? '',
+                            ':capacity' => $tier['capacity'] ?? 0
+                        ]);
+                    }
+
+                    $this->conn->commit();
+                    echo json_encode(["status" => "success", "message" => "Venue created successfully!"]);
+                } else {
+                    throw new Exception("Pricing information is required");
+                }
+            } catch (Exception $e) {
+                $this->conn->rollBack();
+                throw $e;
             }
-
-            echo json_encode(["status" => "success", "message" => "Venue created successfully!"]);
         } catch (PDOException $e) {
             echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
         }
     }
 
-
     public function getVenues($userId) {
         try {
-            $sql = "SELECT venue_id, venue_title, venue_owner, venue_location, venue_contact,
-                           venue_status, venue_price_min, venue_price_max, venue_capacity,
-                           venue_type,
-                           COALESCE(venue_profile_picture, :defaultPfp) as venue_profile_picture,
-                           venue_cover_photo
-                    FROM tbl_venue
-                    WHERE user_id = :userId";
+            $sql = "SELECT
+                       v.venue_id,
+                       v.venue_title,
+                       v.venue_owner,
+                       v.venue_location,
+                       v.venue_contact,
+                       v.venue_status,
+                       v.venue_type,
+                       v.venue_details,
+                       COALESCE(v.venue_profile_picture, :defaultPfp) as venue_profile_picture,
+                       v.venue_cover_photo,
+                       CONCAT(u.user_firstName, ' ', u.user_lastName) as vendor_name,
+                       vp.tbl_venue_price_id,
+                       vp.venue_price_title,
+                       vp.venue_price_min,
+                       vp.venue_price_max,
+                       vp.venue_price_description,
+                       vp.tbl_capacity
+                    FROM tbl_venue v
+                    JOIN tbl_users u ON v.user_id = u.user_id
+                    LEFT JOIN tbl_venue_price vp ON v.venue_id = vp.venue_id
+                    WHERE v.user_id = :userId
+                    ORDER BY v.venue_id DESC";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
                 ':userId' => $userId,
                 ':defaultPfp' => $this->defaultPfpPath
             ]);
-            $venues = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Group the results by venue
+            $venues = [];
+            foreach ($rows as $row) {
+                $venueId = $row['venue_id'];
+
+                if (!isset($venues[$venueId])) {
+                    $venues[$venueId] = [
+                        'venue_id' => $row['venue_id'],
+                        'venue_title' => $row['venue_title'],
+                        'venue_owner' => $row['venue_owner'],
+                        'venue_location' => $row['venue_location'],
+                        'venue_contact' => $row['venue_contact'],
+                        'venue_status' => $row['venue_status'],
+                        'venue_type' => $row['venue_type'],
+                        'venue_details' => $row['venue_details'],
+                        'venue_profile_picture' => $row['venue_profile_picture'],
+                        'venue_cover_photo' => $row['venue_cover_photo'],
+                        'vendor_name' => $row['vendor_name'],
+                        'prices' => []
+                    ];
+                }
+
+                if ($row['tbl_venue_price_id']) {
+                    $venues[$venueId]['prices'][] = [
+                        'id' => $row['tbl_venue_price_id'],
+                        'title' => $row['venue_price_title'],
+                        'min' => $row['venue_price_min'],
+                        'max' => $row['venue_price_max'],
+                        'capacity' => $row['tbl_capacity'],
+                        'description' => $row['venue_price_description']
+                    ];
+                }
+            }
+
+            $venues = array_values($venues);
 
             foreach ($venues as &$venue) {
-                $venue['venue_profile_picture'] = $venue['venue_profile_picture'] ?
-                    (strpos($venue['venue_profile_picture'], 'default') !== false ?
-                        $venue['venue_profile_picture'] :
-                        "uploads/venue_profile_pictures/" . basename($venue['venue_profile_picture'])) :
-                    $this->defaultPfpPath;
-                $venue['venue_cover_photo'] = $venue['venue_cover_photo'] ?
-                    "uploads/venue_cover_photos/" . basename($venue['venue_cover_photo']) :
-                    null;
+                // Handle profile picture path
+                if ($venue['venue_profile_picture']) {
+                    if (strpos($venue['venue_profile_picture'], 'default') !== false) {
+                        $venue['venue_profile_picture'] = $venue['venue_profile_picture'];
+                    } else {
+                        $venue['venue_profile_picture'] = "uploads/venue_profile_pictures/" . basename($venue['venue_profile_picture']);
+                    }
+                } else {
+                    $venue['venue_profile_picture'] = $this->defaultPfpPath;
+                }
+
+                // Handle cover photo path
+                if ($venue['venue_cover_photo']) {
+                    $venue['venue_cover_photo'] = "uploads/venue_cover_photos/" . basename($venue['venue_cover_photo']);
+                }
             }
 
             echo json_encode(["status" => "success", "venues" => $venues]);
         } catch (PDOException $e) {
+            error_log("Database error in getVenues: " . $e->getMessage());
             echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
         }
     }

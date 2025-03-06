@@ -4,36 +4,29 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckIcon } from "lucide-react";
 import axios from "axios";
 import { VenueCard } from "../../../components/card/venue-card";
+import { secureStorage } from "@/app/utils/encryption";
+import { protectRoute } from "@/app/utils/routeProtection";
 
 const steps = [
-  { id: 1, name: "Venue Details" },
-  { id: 2, name: "Contact Information" },
-  { id: 3, name: "Pricing & Capacity" },
-  { id: 4, name: "Location" },
-  { id: 5, name: "Document Upload" },
-  { id: 6, name: "Review" },
+  { id: 1, name: "Personal Details" },
+  { id: 2, name: "Location" },
+  { id: 3, name: "Pricing" },
+  { id: 4, name: "Customize" },
+  { id: 5, name: "Media Upload" },
 ];
 
 interface VenueDetailsProps {
   venueTitle: string;
   setVenueTitle: (value: string) => void;
-  venueOwner: string;
-  setVenueOwner: (value: string) => void;
   venueDetails: string;
   setVenueDetails: (value: string) => void;
-  venueType: string;
-  setVenueType: (value: string) => void;
 }
 
 function VenueDetails({
   venueTitle,
   setVenueTitle,
-  venueOwner,
-  setVenueOwner,
   venueDetails,
   setVenueDetails,
-  venueType,
-  setVenueType,
 }: VenueDetailsProps) {
   return (
     <div className="space-y-4">
@@ -54,21 +47,6 @@ function VenueDetails({
       </div>
       <div>
         <label
-          htmlFor="venueOwner"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Venue Owner
-        </label>
-        <input
-          id="venueOwner"
-          type="text"
-          value={venueOwner}
-          onChange={(e) => setVenueOwner(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-        />
-      </div>
-      <div>
-        <label
           htmlFor="venueDetails"
           className="block text-sm font-medium text-gray-700"
         >
@@ -77,43 +55,57 @@ function VenueDetails({
         <textarea
           id="venueDetails"
           value={venueDetails}
-          onChange={(e) => setVenueDetails(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-          rows={4}
+          onChange={(e) => {
+            if (e.target.value.length <= 250) {
+              setVenueDetails(e.target.value);
+            }
+          }}
+          maxLength={250}
+          className="mt-1 block w-full h-32 resize-none rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+          placeholder="Enter venue details (max 250 characters)"
         />
-      </div>
-      <div>
-        <label
-          htmlFor="venueType"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Venue Type
-        </label>
-        <select
-          id="venueType"
-          value={venueType}
-          onChange={(e) => setVenueType(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-        >
-          <option value="internal">Internal</option>
-          <option value="external">External</option>
-        </select>
+        <p className="mt-1 text-sm text-gray-500">
+          {venueDetails.length}/250 characters
+        </p>
       </div>
     </div>
   );
 }
 
-interface ContactInformationProps {
+interface LocationContactProps {
+  venueLocation: string;
+  setVenueLocation: (value: string) => void;
   venueContact: string;
   setVenueContact: (value: string) => void;
+  venueEmail: string;
+  setVenueEmail: (value: string) => void;
 }
 
-function ContactInformation({
+function LocationContact({
+  venueLocation,
+  setVenueLocation,
   venueContact,
   setVenueContact,
-}: ContactInformationProps) {
+  venueEmail,
+  setVenueEmail,
+}: LocationContactProps) {
   return (
     <div className="space-y-4">
+      <div>
+        <label
+          htmlFor="venueLocation"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Venue Location
+        </label>
+        <input
+          id="venueLocation"
+          type="text"
+          value={venueLocation}
+          onChange={(e) => setVenueLocation(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+        />
+      </div>
       <div>
         <label
           htmlFor="venueContact"
@@ -129,101 +121,157 @@ function ContactInformation({
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
         />
       </div>
+      <div>
+        <label
+          htmlFor="venueEmail"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Email
+        </label>
+        <input
+          id="venueEmail"
+          type="email"
+          value={venueEmail}
+          onChange={(e) => setVenueEmail(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+        />
+      </div>
     </div>
   );
 }
 
 interface PricingCapacityProps {
-  venuePriceMin: string;
-  setVenuePriceMin: (value: string) => void;
-  venuePriceMax: string;
-  setVenuePriceMax: (value: string) => void;
-  venueCapacity: string;
-  setVenueCapacity: (value: string) => void;
+  pricingTiers: { name: string; price: string; capacity: string }[];
+  setPricingTiers: (
+    tiers: { name: string; price: string; capacity: string }[]
+  ) => void;
 }
 
 function PricingCapacity({
-  venuePriceMin,
-  setVenuePriceMin,
-  venuePriceMax,
-  setVenuePriceMax,
-  venueCapacity,
-  setVenueCapacity,
+  pricingTiers,
+  setPricingTiers,
 }: PricingCapacityProps) {
+  const addPricingTier = () => {
+    setPricingTiers([
+      ...pricingTiers,
+      { name: `Package ${pricingTiers.length + 1}`, price: "", capacity: "" },
+    ]);
+  };
+
+  const removePricingTier = (index: number) => {
+    if (pricingTiers.length > 1) {
+      setPricingTiers(pricingTiers.filter((_, i) => i !== index));
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <label
-          htmlFor="venuePriceMin"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Minimum Price
-        </label>
-        <input
-          id="venuePriceMin"
-          type="number"
-          value={venuePriceMin}
-          onChange={(e) => setVenuePriceMin(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-        />
+      <div className="mb-4">
+        <h3 className="text-lg font-medium text-gray-900">Pricing Tiers</h3>
+        <p className="text-sm text-gray-500">
+          Define different pricing packages for your venue
+        </p>
       </div>
-      <div>
-        <label
-          htmlFor="venuePriceMax"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Maximum Price
-        </label>
-        <input
-          id="venuePriceMax"
-          type="number"
-          value={venuePriceMax}
-          onChange={(e) => setVenuePriceMax(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="venueCapacity"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Venue Capacity
-        </label>
-        <input
-          id="venueCapacity"
-          type="number"
-          value={venueCapacity}
-          onChange={(e) => setVenueCapacity(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-        />
-      </div>
-    </div>
-  );
-}
 
-interface LocationProps {
-  venueLocation: string;
-  setVenueLocation: (value: string) => void;
-}
-
-function Location({ venueLocation, setVenueLocation }: LocationProps) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <label
-          htmlFor="venueLocation"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Venue Location
-        </label>
-        <textarea
-          id="venueLocation"
-          value={venueLocation}
-          onChange={(e) => setVenueLocation(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
-          rows={4}
-        />
+      <div className="space-y-4">
+        {pricingTiers.map((tier, index) => (
+          <div key={index} className="relative p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Package Name
+                </label>
+                <input
+                  type="text"
+                  value={tier.name}
+                  onChange={(e) => {
+                    const newTiers = [...pricingTiers];
+                    newTiers[index].name = e.target.value;
+                    setPricingTiers(newTiers);
+                  }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+                  placeholder="e.g., Basic Package"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Price (₱)
+                </label>
+                <input
+                  type="number"
+                  value={tier.price}
+                  onChange={(e) => {
+                    const newTiers = [...pricingTiers];
+                    newTiers[index].price = e.target.value;
+                    setPricingTiers(newTiers);
+                  }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+                  placeholder="Enter price"
+                  min="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Capacity
+                </label>
+                <input
+                  type="number"
+                  value={tier.capacity}
+                  onChange={(e) => {
+                    const newTiers = [...pricingTiers];
+                    newTiers[index].capacity = e.target.value;
+                    setPricingTiers(newTiers);
+                  }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#486968] focus:ring-[#486968]"
+                  placeholder="Enter capacity"
+                  min="1"
+                />
+              </div>
+            </div>
+            {pricingTiers.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removePricingTier(index)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
+                title="Remove package"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        ))}
       </div>
+
+      <button
+        type="button"
+        onClick={addPricingTier}
+        className="mt-4 flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-gray-400 hover:text-gray-800"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+            clipRule="evenodd"
+          />
+        </svg>
+        Add More Pricing Options
+      </button>
     </div>
   );
 }
@@ -275,186 +323,301 @@ function DocumentUpload({
   );
 }
 
+interface MediaUploadProps {
+  venueProfilePicture: File | null;
+  setVenueProfilePicture: (file: File | null) => void;
+  venueCoverPhoto: File | null;
+  setVenueCoverPhoto: (file: File | null) => void;
+}
+
+function MediaUpload({
+  venueProfilePicture,
+  setVenueProfilePicture,
+  venueCoverPhoto,
+  setVenueCoverPhoto,
+}: MediaUploadProps) {
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
+  const handleProfilePictureChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVenueProfilePicture(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVenueCoverPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Media Upload</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Upload profile picture and cover photo for your venue
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Profile Picture
+          </label>
+          <div className="flex items-center space-x-4">
+            <div className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-full overflow-hidden">
+              {profilePreview ? (
+                <img
+                  src={profilePreview}
+                  alt="Profile preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  No image
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#486968] file:text-white hover:file:bg-[#3a5453]"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Recommended: Square image, at least 300x300px
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Cover Photo
+          </label>
+          <div className="flex items-center space-x-4">
+            <div className="w-32 h-20 border-2 border-gray-300 border-dashed rounded-lg overflow-hidden">
+              {coverPreview ? (
+                <img
+                  src={coverPreview}
+                  alt="Cover preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  No image
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverPhotoChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#486968] file:text-white hover:file:bg-[#3a5453]"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Recommended: 16:9 ratio, at least 1200x675px
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Venue {
   venue_id: number;
   venue_title: string;
   venue_owner: string;
   venue_location: string;
   venue_contact: string;
+  venue_details: string;
   venue_status: string;
-  venue_price_min: number;
-  venue_price_max: number;
   venue_capacity: number;
   venue_type: string;
   venue_profile_picture: string | null;
   venue_cover_photo: string | null;
 }
 
-export default function VendorVenueCreation() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function VendorVenues() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [pricingTiers, setPricingTiers] = useState([
+    { name: "Basic Package", price: "", capacity: "" },
+    { name: "Standard Package", price: "", capacity: "" },
+    { name: "Premium Package", price: "", capacity: "" },
+  ]);
+
+  // Venue form states
   const [venueTitle, setVenueTitle] = useState("");
-  const [venueOwner, setVenueOwner] = useState("");
   const [venueDetails, setVenueDetails] = useState("");
-  const [venueType, setVenueType] = useState("internal");
-  const [venueContact, setVenueContact] = useState("");
-  const [venuePriceMin, setVenuePriceMin] = useState("");
-  const [venuePriceMax, setVenuePriceMax] = useState("");
-  const [venueCapacity, setVenueCapacity] = useState("");
   const [venueLocation, setVenueLocation] = useState("");
+  const [venueContact, setVenueContact] = useState("");
+  const [venueEmail, setVenueEmail] = useState("");
   const [venueProfilePicture, setVenueProfilePicture] = useState<File | null>(
     null
   );
   const [venueCoverPhoto, setVenueCoverPhoto] = useState<File | null>(null);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
 
   const fetchVenues = useCallback(async () => {
     try {
-      setLoading(true);
-      const storedUser = localStorage.getItem("user");
-
-      if (!storedUser) {
-        setError("User ID not found. Please log in.");
-        return;
+      const userData = secureStorage.getItem("user");
+      if (!userData?.user_id) {
+        throw new Error("User ID not found");
       }
 
-      const user = JSON.parse(storedUser);
-      const userId = user.user_id;
-
-      if (!userId) {
-        setError("User ID not found. Please log in.");
-        return;
-      }
-
-      console.log("Fetching venues with user ID:", userId);
       const response = await axios.get(
-        "http://localhost/events-api/vendor.php",
-        {
-          params: { operation: "getVenues", user_id: userId },
-        }
+        `http://localhost/events-api/vendor.php?operation=getVenues&user_id=${userData.user_id}`
       );
 
-      if (response.data.status === "success") {
-        console.log("Fetched Venues:", response.data.venues);
+      if (
+        response.data.status === "success" &&
+        Array.isArray(response.data.venues)
+      ) {
         setVenues(response.data.venues);
       } else {
-        setError(response.data.message);
+        setError(response.data.message || "Failed to fetch venues");
       }
-    } catch (error) {
-      console.error("Error fetching venues:", error);
-      setError("Failed to fetch venues.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
   useEffect(() => {
+    protectRoute();
     fetchVenues();
   }, [fetchVenues]);
 
-  const handleSubmit = async () => {
-    try {
-      const formData = new FormData();
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const userId = user?.user_id;
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData();
 
-      if (!userId) {
-        alert("User is not logged in. Please log in first.");
-        return;
+    try {
+      const userData = secureStorage.getItem("user");
+      if (!userData?.user_id) {
+        throw new Error("User ID not found");
       }
 
+      // Add basic venue information
       formData.append("operation", "createVenue");
-      formData.append("user_id", userId.toString());
+      formData.append("user_id", userData.user_id);
       formData.append("venue_title", venueTitle);
-      formData.append("venue_owner", venueOwner);
+      formData.append("venue_details", venueDetails);
       formData.append("venue_location", venueLocation);
       formData.append("venue_contact", venueContact);
-      formData.append("venue_details", venueDetails);
-      formData.append("venue_price_min", venuePriceMin);
-      formData.append("venue_price_max", venuePriceMax);
-      formData.append("venue_capacity", venueCapacity);
-      formData.append("venue_type", venueType);
+      formData.append("venue_email", venueEmail);
+      formData.append("venue_status", "available");
 
-      if (venueProfilePicture)
+      // Add pricing tiers
+      pricingTiers.forEach((tier, index) => {
+        formData.append(`pricing[${index}][name]`, tier.name);
+        formData.append(`pricing[${index}][price]`, tier.price);
+        formData.append(`pricing[${index}][capacity]`, tier.capacity);
+      });
+
+      // Add media files
+      if (venueProfilePicture) {
         formData.append("venue_profile_picture", venueProfilePicture);
-      if (venueCoverPhoto)
+      }
+      if (venueCoverPhoto) {
         formData.append("venue_cover_photo", venueCoverPhoto);
-
-      //   console.log("Submitting Form Data:", Object.fromEntries(formData.entries()))
+      }
 
       const response = await axios.post(
         "http://localhost/events-api/vendor.php",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
-      //   console.log("Response:", response.data)
-
       if (response.data.status === "success") {
-        alert("Venue created successfully!");
-        closeModal();
+        setShowModal(false);
         fetchVenues();
+        // Reset form
+        setVenueTitle("");
+        setVenueDetails("");
+        setVenueLocation("");
+        setVenueContact("");
+        setVenueEmail("");
+        setVenueProfilePicture(null);
+        setVenueCoverPhoto(null);
+        setPricingTiers([
+          { name: "Basic Package", price: "", capacity: "" },
+          { name: "Standard Package", price: "", capacity: "" },
+          { name: "Premium Package", price: "", capacity: "" },
+        ]);
+        setCurrentStep(1);
       } else {
-        alert("Error: " + response.data.message);
+        throw new Error(response.data.message || "Failed to create venue");
       }
-    } catch (error) {
-      //   console.error("Error submitting form:", error)
-      alert("An error occurred while submitting the form.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
   return (
-    <div className="p-6">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Venues</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Venues</h1>
         <button
-          onClick={openModal}
-          className="rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]"
+          onClick={() => setShowModal(true)}
+          className="rounded-md bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]"
         >
           Create Venue +
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#486968] border-t-transparent"></div>
-        </div>
-      ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-red-800">{error}</div>
-      ) : venues.length === 0 ? (
-        <div className="rounded-lg bg-gray-50 p-8 text-center">
-          <h3 className="text-lg font-medium text-gray-900">No venues yet</h3>
-          <p className="mt-1 text-gray-500">
-            Get started by creating a new venue.
+      {venues.length === 0 ? (
+        <div className="flex h-[60vh] flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-12 text-center">
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">
+            No venues
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Get started by creating a new venue
           </p>
           <button
-            onClick={openModal}
-            className="mt-4 rounded bg-[#486968] px-4 py-2 text-white hover:bg-[#3a5453]"
+            onClick={() => setShowModal(true)}
+            className="mt-6 rounded-md bg-[#486968] px-4 py-2 text-sm font-medium text-white hover:bg-[#3a5453]"
           >
-            Create Venue
+            Create Venue +
           </button>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {venues.map((venue) => (
             <VenueCard
               key={venue.venue_id}
@@ -462,96 +625,104 @@ export default function VendorVenueCreation() {
               venueTitle={venue.venue_title}
               venueProfilePicture={venue.venue_profile_picture}
               venueCoverPhoto={venue.venue_cover_photo}
+              venueLocation={venue.venue_location}
+              venueType={venue.venue_type}
+              venueStatus={venue.venue_status}
             />
           ))}
         </div>
       )}
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-8 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold">Create Your Venue</h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
-            </div>
-
+      {/* Modal for venue creation */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50">
+          <div className="relative w-full max-w-2xl rounded-lg bg-white p-6">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
             <div className="mb-8">
-              <div className="relative">
-                <div className="absolute top-5 left-0 right-0 flex justify-between px-[3rem]">
-                  {steps.slice(0, -1).map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-[2px] w-full ${currentStep > index + 1 ? "bg-[#486968]" : "bg-gray-300"}`}
-                    />
-                  ))}
-                </div>
-
-                <ul className="flex justify-between relative z-10">
-                  {steps.map((step, index) => (
-                    <li key={step.id} className="flex flex-col items-center">
+              <nav aria-label="Progress">
+                <ol className="flex items-center">
+                  {steps.map((step) => (
+                    <li
+                      key={step.id}
+                      className={`relative ${
+                        step.id !== steps.length ? "pr-8" : ""
+                      } ${step.id !== 1 ? "pl-8" : ""}`}
+                    >
                       <div
-                        className={`w-10 h-10 flex items-center justify-center rounded-full border-2 ${
-                          currentStep > index + 1
-                            ? "border-[#486968] bg-[#486968] text-white"
-                            : currentStep === index + 1
-                              ? "border-[#486968] bg-[#486968] text-white"
-                              : "border-gray-300 bg-gray-300 text-gray-600"
+                        className="absolute inset-0 flex items-center"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className={`h-0.5 w-full ${
+                            currentStep > step.id
+                              ? "bg-[#486968]"
+                              : "bg-gray-200"
+                          }`}
+                        />
+                      </div>
+                      <div
+                        className={`relative flex h-8 w-8 items-center justify-center rounded-full ${
+                          currentStep > step.id
+                            ? "bg-[#486968]"
+                            : currentStep === step.id
+                              ? "border-2 border-[#486968] bg-white"
+                              : "border-2 border-gray-300 bg-white"
                         }`}
                       >
-                        {currentStep > index + 1 ? (
-                          <CheckIcon className="w-5 h-5" />
+                        {currentStep > step.id ? (
+                          <CheckIcon
+                            className="h-5 w-5 text-white"
+                            aria-hidden="true"
+                          />
                         ) : (
-                          <span className="text-sm">{index + 1}</span>
+                          <span
+                            className={
+                              currentStep === step.id
+                                ? "text-[#486968]"
+                                : "text-gray-500"
+                            }
+                          >
+                            {step.id}
+                          </span>
                         )}
                       </div>
-                      <span className="text-sm mt-2">{step.name}</span>
                     </li>
                   ))}
-                </ul>
-              </div>
+                </ol>
+              </nav>
             </div>
 
-            <div className="mb-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {currentStep === 1 && (
                 <VenueDetails
                   venueTitle={venueTitle}
                   setVenueTitle={setVenueTitle}
-                  venueOwner={venueOwner}
-                  setVenueOwner={setVenueOwner}
                   venueDetails={venueDetails}
                   setVenueDetails={setVenueDetails}
-                  venueType={venueType}
-                  setVenueType={setVenueType}
                 />
               )}
               {currentStep === 2 && (
-                <ContactInformation
+                <LocationContact
+                  venueLocation={venueLocation}
+                  setVenueLocation={setVenueLocation}
                   venueContact={venueContact}
                   setVenueContact={setVenueContact}
+                  venueEmail={venueEmail}
+                  setVenueEmail={setVenueEmail}
                 />
               )}
               {currentStep === 3 && (
                 <PricingCapacity
-                  venuePriceMin={venuePriceMin}
-                  setVenuePriceMin={setVenuePriceMin}
-                  venuePriceMax={venuePriceMax}
-                  setVenuePriceMax={setVenuePriceMax}
-                  venueCapacity={venueCapacity}
-                  setVenueCapacity={setVenueCapacity}
+                  pricingTiers={pricingTiers}
+                  setPricingTiers={setPricingTiers}
                 />
               )}
               {currentStep === 4 && (
-                <Location
-                  venueLocation={venueLocation}
-                  setVenueLocation={setVenueLocation}
-                />
-              )}
-              {currentStep === 5 && (
                 <DocumentUpload
                   venueProfilePicture={venueProfilePicture}
                   setVenueProfilePicture={setVenueProfilePicture}
@@ -559,80 +730,43 @@ export default function VendorVenueCreation() {
                   setVenueCoverPhoto={setVenueCoverPhoto}
                 />
               )}
-              {currentStep === 6 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
-                    Review Your Venue Details
-                  </h3>
-                  <p>
-                    <strong>Venue Title:</strong> {venueTitle}
-                  </p>
-                  <p>
-                    <strong>Venue Owner:</strong> {venueOwner}
-                  </p>
-                  <p>
-                    <strong>Venue Type:</strong> {venueType}
-                  </p>
-                  <p>
-                    <strong>Contact Number:</strong> {venueContact}
-                  </p>
-                  <p>
-                    <strong>Price Range:</strong> ${venuePriceMin} - $
-                    {venuePriceMax}
-                  </p>
-                  <p>
-                    <strong>Capacity:</strong> {venueCapacity}
-                  </p>
-                  <p>
-                    <strong>Location:</strong> {venueLocation}
-                  </p>
-                  <p>
-                    <strong>Venue Details:</strong> {venueDetails}
-                  </p>
-                  <p>
-                    <strong>Documents Uploaded:</strong>
-                  </p>
-                  <ul className="list-disc list-inside">
-                    <li>
-                      Profile Picture:{" "}
-                      {venueProfilePicture
-                        ? venueProfilePicture.name
-                        : "Not uploaded"}
-                    </li>
-                    <li>
-                      Cover Photo:{" "}
-                      {venueCoverPhoto ? venueCoverPhoto.name : "Not uploaded"}
-                    </li>
-                  </ul>
-                </div>
+              {currentStep === 5 && (
+                <MediaUpload
+                  venueProfilePicture={venueProfilePicture}
+                  setVenueProfilePicture={setVenueProfilePicture}
+                  venueCoverPhoto={venueCoverPhoto}
+                  setVenueCoverPhoto={setVenueCoverPhoto}
+                />
               )}
-            </div>
 
-            <div className="flex justify-between">
-              {currentStep > 1 && (
-                <button
-                  onClick={prevStep}
-                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-              )}
-              {currentStep < steps.length ? (
-                <button
-                  onClick={nextStep}
-                  className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  className="px-4 py-2 bg-[#486968] text-white rounded hover:bg-[#3a5453]"
-                >
-                  Submit
-                </button>
-              )}
-            </div>
+              <div className="mt-6 flex justify-between">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(currentStep - 1)}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < steps.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(currentStep + 1)}
+                    className="ml-auto rounded-md bg-[#486968] px-4 py-2 text-sm font-medium text-white hover:bg-[#3a5453]"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="ml-auto rounded-md bg-[#486968] px-4 py-2 text-sm font-medium text-white hover:bg-[#3a5453]"
+                  >
+                    Create Venue
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
         </div>
       )}
