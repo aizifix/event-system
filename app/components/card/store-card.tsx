@@ -1,15 +1,15 @@
-"use client"
-import Image from "next/image"
+"use client";
+import Image from "next/image";
 
 interface StoreCardProps {
-  id: number
-  vendorName: string
-  storeName: string
-  storeType: string
-  storeCategory: string
-  coverPhoto: string | null
-  profilePicture: string | null
-  isAdminView?: boolean
+  id: number;
+  vendorName: string;
+  storeName: string;
+  storeType: string;
+  storeCategory: string;
+  coverPhoto: string | null;
+  profilePicture: string | null;
+  isAdminView?: boolean;
 }
 
 export function StoreCard({
@@ -22,17 +22,25 @@ export function StoreCard({
   profilePicture,
   isAdminView = false, // Default to vendor view
 }: StoreCardProps) {
-  // Normalize Image Paths
+  // Base URL for API
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost/events-api";
+
+  // Normalize Image Paths with proper error handling
   const normalizePath = (path: string | null) => {
-    if (!path || path.startsWith("http")) return path
-    return `http://localhost/events-api/${path}`
-  }
+    if (!path) return "/placeholder.jpg";
+    if (path.startsWith("http")) return path;
+    if (path.startsWith("/")) return `${API_URL}${path}`;
+    return `${API_URL}/${path}`;
+  };
 
-  const coverPhotoUrl = normalizePath(coverPhoto) || "/placeholder.svg"
-  const profilePictureUrl = normalizePath(profilePicture) || "/placeholder.svg"
+  const coverPhotoUrl = normalizePath(coverPhoto);
+  const profilePictureUrl = normalizePath(profilePicture);
 
-  console.log(`${isAdminView ? "Admin" : "Vendor"} Cover Photo URL:`, coverPhotoUrl)
-  console.log(`${isAdminView ? "Admin" : "Vendor"} Profile Picture URL:`, profilePictureUrl)
+  console.log("Store Image URLs:", {
+    cover: coverPhotoUrl,
+    profile: profilePictureUrl,
+  });
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -63,7 +71,9 @@ export function StoreCard({
       {/* Content */}
       <div className="p-4 pt-12">
         <h3 className="text-lg font-semibold text-gray-900">{storeName}</h3>
-        <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">{storeCategory}</span>
+        <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600">
+          {storeCategory}
+        </span>
 
         {/* Show "Manage" button for Admin */}
         {isAdminView ? (
@@ -77,5 +87,5 @@ export function StoreCard({
         )}
       </div>
     </div>
-  )
+  );
 }

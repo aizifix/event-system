@@ -1,51 +1,35 @@
+"use client";
+
 import Image from "next/image";
 
-const galleryImages = [
-  {
-    src: "/gallery/image1.jpg",
-    alt: "Wedding silhouette",
-  },
-  {
-    src: "/gallery/image2.jpg",
-    alt: "Bride in car",
-  },
-  {
-    src: "/gallery/image3.jpg",
-    alt: "Bridesmaids group photo",
-  },
-  {
-    src: "/gallery/image4.jpg",
-    alt: "Traditional wedding couple",
-  },
-  {
-    src: "/gallery/image5.jpg",
-    alt: "Military wedding couple",
-  },
-  {
-    src: "/gallery/image6.jpg",
-    alt: "Wedding venue decoration",
-  },
-];
-
 export default function GallerySection() {
+  const galleryImages = [
+    "/temp_package/package_1.jpg",
+    "/temp_package/package_2.jpg",
+    "/temp_package/package_3.jpg",
+    "/temp_package/package_4.jpg",
+    "/temp_package/package_1.jpg",
+    "/temp_package/package_2.jpg",
+  ];
+
   return (
-    <section id="gallery" className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4 max-w-[1200px]">
-        <h2 className="font-['Tiro_Gurmukhi'] text-4xl text-center mb-12">
-          GALLERY
+    <section className="w-full bg-gray-50 py-16">
+      <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <h2 className="mb-12 text-center text-3xl font-bold text-gray-900">
+          Our Gallery
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleryImages.map((image, index) => (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {galleryImages.map((img, index) => (
             <div
               key={index}
-              className="aspect-square relative overflow-hidden rounded-[12px] shadow-md group"
+              className="aspect-w-16 aspect-h-9 overflow-hidden rounded-lg"
             >
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 z-10" />
               <Image
-                src={image.src}
-                alt={image.alt}
-                fill
-                className="object-cover transform group-hover:scale-110 transition-transform duration-500"
+                src={img}
+                alt={`Gallery image ${index + 1}`}
+                width={400}
+                height={300}
+                className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
               />
             </div>
           ))}

@@ -11,18 +11,24 @@ import VenuesSection from "../components/frontpage/venues-section";
 import StoresSection from "../components/frontpage/stores-section";
 import GallerySection from "../components/frontpage/gallery-section";
 import Footer from "../components/frontpage/footer";
+import LocationSection from "../components/frontpage/location-section";
 
 export default function FrontPage() {
   return (
-    <main className="min-h-screen">
-      <Navbar />
-      <HeroSection />
-      <AboutSection />
-      <PackagesSection />
-      <VenuesSection />
-      <StoresSection />
-      <GallerySection />
+    <div className="flex min-h-screen flex-col">
+      <div className="mx-8">
+        <Navbar />
+      </div>
+      <main className="flex-grow">
+        <HeroSection />
+        <AboutSection />
+        <PackagesSection />
+        <VenuesSection />
+        <StoresSection />
+        <GallerySection />
+        <LocationSection />
+      </main>
       <Footer />
-    </main>
+    </div>
   );
 }
